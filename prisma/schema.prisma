@@ -1,0 +1,116 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nombre    String
+  email     String   @unique
+  rol       Rol      @default(OPERACIONES)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+enum Rol {
+  ADMIN
+  OPERACIONES
+  GERENCIA
+}
+
+model Parametro {
+  id          Int      @id @default(autoincrement())
+  tipo        TipoCatalogo
+  nombre      String   // Ej: "Planta Centro", "Cedis Norte"
+  activo      Boolean  @default(true)
+  pedidosOrigen   Pedido[] @relation("OrigenRel")
+  pedidosDestino  Pedido[] @relation("DestinoRel")
+}
+
+enum TipoCatalogo {
+  DESTINO
+  FACTOR_OPERATIVO
+  TIPO_EVENTO
+}
+
+model Unidad {
+  id              Int      @id @default(autoincrement())
+  placa           String   @unique
+  codigoInterno   String   @unique 
+  marca           String
+  anio            Int
+  capacidadTon    Float    
+  factorEmision   Float    
+  conductorActual String?
+  estado          EstadoUnidad @default(DISPONIBLE)
+  
+  pedidos         Pedido[] // Historial de viajes asignados
+}
+
+enum EstadoUnidad {
+  DISPONIBLE
+  EN_RUTA
+  MANTENIMIENTO
+}
+
+model Cliente {
+  id          Int      @id @default(autoincrement())
+  razonSocial String
+  documento   String   @unique // RUC
+  pedidos     Pedido[]
+}
+
+model Pedido {
+  id               Int      @id @default(autoincrement())
+  codigo           String   @unique // Ej: PED-001
+  clienteId        Int
+  cliente          Cliente  @relation(fields: [clienteId], references: [id])
+  origenId         Int
+  origen           Parametro @relation("OrigenRel", fields: [origenId], references: [id])
+  destinoId        Int
+  destino          Parametro @relation("DestinoRel", fields: [destinoId], references: [id])
+  factorPesoVol    String?   // Ej: "12 Toneladas"
+  observaciones    String?
+  estado           EstadoPedido @default(PENDIENTE)
+  
+  // Asignación de Unidad (Módulo 3)
+  unidadId         Int?
+  unidad           Unidad?  @relation(fields: [unidadId], references: [id])
+  
+  // Datos para Módulo 5 (Costos y Rentabilidad)
+  distanciaKm      Float?
+  ingresoFlete     Float?   // $850.00 de la captura
+  costoCombustible Float?   // $150.00
+  costoPeaje       Float?   // $45.50
+  costoCarga       Float?   // $30.00
+  impactoCo2       Float?
+  margenNeto       Float?
+  rentabilidad     Float?
+  
+  incidencias      Incidencia[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  EN_TRANSITO
+  ENTREGADO
+  OBSERVADO
+}
+
+model Incidencia {
+  id          Int      @id @default(autoincrement())
+  pedidoId    Int
+  pedido      Pedido   @relation(fields: [pedidoId], references: [id])
+  
+  tipoEvento  String   // Ej: "Incidencia Operativa (Tráfico)"
+  ubicacion   String?   // Ej: "Ruta 66, KM 120"
+  detalle     String
+  fechaHora   DateTime @default(now())
+}
