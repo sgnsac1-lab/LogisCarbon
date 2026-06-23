@@ -2,8 +2,13 @@
 
 import { Bell, User, LogOut } from "lucide-react"
 import { cerrarSesion } from "@/actions/logOut.actions"
+import { Usuario } from "@/types"
 
-export default function Topbar() {
+interface Props{
+  usuario: Usuario
+}
+
+export default function Topbar({usuario}: Props) {
 
   return (
      <header className="flex items-center justify-between h-16 px-6 bg-white border-b border-slate-200 shrink-0">
@@ -19,8 +24,8 @@ export default function Topbar() {
         </button>
         <div className="flex items-center space-x-3 pl-4 border-l border-slate-200">
           <div className="flex flex-col text-right sm:flex">
-            <span className="text-sm font-medium text-slate-700">Admin Usuario</span>
-            <span className="text-xs text-slate-500">Operaciones</span>
+            <span className="text-sm font-medium text-slate-700">{usuario.nombre}</span>
+            <span className="text-xs text-slate-500">{usuario.rol}</span>
           </div>
           <div className="flex items-center justify-center w-9 h-9 bg-emerald-100 rounded-full text-emerald-600">
             <User className="w-5 h-5" />
