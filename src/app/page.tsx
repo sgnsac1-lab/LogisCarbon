@@ -49,12 +49,20 @@ export default function Home() {
                 Logis<span className="text-emerald-500">Carbon</span>
               </span>
             </div>
-            <div>
+            <div className="flex items-center gap-2 w-100">
               <Link href="/login">
                 <Button variant="outline" className="text-slate-700">
                   Iniciar Sesión
                 </Button>
               </Link>
+              <a
+                href='https://docs.google.com/document/d/19aXqUyRA6frVAOuTinjJUlPQdjON-0q5qwgxrngsNII/edit?usp=sharing'
+                target='_blank'
+                className="bg-green-600 hover:bg-green-700 text-white font-medium p-2 rounded-lg shadow-md flex items-center justify-center transition-all bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+              >
+                Manual de usuario
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </a>
             </div>
           </div>
         </header>
