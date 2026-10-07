@@ -1,8 +1,9 @@
 import Rentabilidad from "./Rentabilidad"
 import { ObtenerPedidos } from "@/actions/pedidos.actions"
+import { getSessionUser } from "@/actions/session.actions"
 
 export default async function page() {
-  const response = await ObtenerPedidos()
+  const [response, session] = await Promise.all([ObtenerPedidos(), getSessionUser()])
   if(!response.success){
       return (
         <div className="p-8 max-w-7xl mx-auto">
@@ -14,6 +15,9 @@ export default async function page() {
       )
   }
   const listaPedidos = response.data || []
-  const listaPedidosFiltered = listaPedidos.filter((ped)=>ped.estado === 'ENTREGADO' && ped.rentabilidad === null)
-  return <Rentabilidad pedidos={listaPedidosFiltered} />
+  const listaPedidosFiltered = listaPedidos.filter((ped)=>
+    ped.estado === 'ENTREGADO' &&
+    (ped.viajeId === null || ped.viaje?.estado === 'CERRADO')
+  )
+  return <Rentabilidad pedidos={listaPedidosFiltered} rol={session?.rol ?? 'OPERACIONES'} />
 }

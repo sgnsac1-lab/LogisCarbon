@@ -1,24 +1,33 @@
 'use client'
 
 import { useState } from "react"
-import { mockTrazabilidad } from "@/lib/temp/mockData"
+import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import Modal from "@/components/ui/Modal"
 import { CheckCircle2, AlertTriangle, Clock, MapPin } from "lucide-react"
-import { Pedido, Incidencia } from "@/types"
+import { Pedido, Incidencia, Rol } from "@/types"
 import { CrearIncidencias } from "@/actions/incidencias.actions"
 import { completarEntrega } from "@/actions/pedidos.actions"
 
 interface Props {
     pedido: Pedido,
-    incidencias: Incidencia[]
+    incidencias: Incidencia[],
+    rol: Rol
 }
 
-export default function Trazabilidad({pedido, incidencias}: Props) {
+export default function Trazabilidad({pedido, incidencias, rol}: Props) {
+    const esSoloLectura = rol === 'GERENCIA'
+    const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    const viaje = pedido.viaje ?? null
+    const pedidosViaje = viaje?.pedidos ?? []
+    const totalPedidos = pedidosViaje.length
+    const pedidosEntregados = pedidosViaje.filter((item) => item.estado === 'ENTREGADO').length
+    const pedidosPendientes = totalPedidos - pedidosEntregados
 
     const handleAddIncidencia = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -36,6 +45,21 @@ export default function Trazabilidad({pedido, incidencias}: Props) {
             setIsModalOpen(false)
             setLoading(false)
         }
+    }
+
+    const handleCompletarEntrega = async () => {
+        setLoading(true)
+        setError(null)
+        const result = await completarEntrega(pedido.id, pedido.unidadId ?? 0)
+
+        if (!result.success) {
+            setError(result.error ?? 'No se pudo completar la entrega.')
+            setLoading(false)
+            return
+        }
+
+        setLoading(false)
+        router.refresh()
     }
 
     const formatearFecha = (fecha: Date | string) => {
@@ -65,21 +89,31 @@ export default function Trazabilidad({pedido, incidencias}: Props) {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <h2 className="text-2xl font-bold text-slate-800">Seguimiento e Incidencias</h2>
-              <p className="text-slate-500 text-sm mt-1">Timeline y monitoreo de ruta para pedido: <span className="font-bold text-slate-800">{mockTrazabilidad.pedidoId}</span></p>
+              <p className="text-slate-500 text-sm mt-1">Timeline y monitoreo de ruta para pedido: <span className="font-bold text-slate-800">{pedido.codigo}</span></p>
             </div>
             <div className="flex items-center space-x-3">
               <Button variant="outline" title="Próximamente" onClick={showUpcomingModal} className="opacity-70">
                  <MapPin className="w-4 h-4 mr-2" /> GPS en tiempo real
               </Button>
-              <Button onClick={() => setIsModalOpen(true)}>
-                 Añadir Incidencia / Observación
-              </Button>
-              <Button onClick={() => completarEntrega(pedido.id, pedido.unidadId!)}>
-                 Completar Entrega
-              </Button>
+              {!esSoloLectura && (
+                <Button onClick={() => setIsModalOpen(true)}>
+                   Añadir Incidencia / Observación
+                </Button>
+              )}
+              {!esSoloLectura && pedido.estado === 'EN_TRANSITO' && (
+                <Button onClick={handleCompletarEntrega} disabled={loading}>
+                   Completar Entrega
+                </Button>
+              )}
             </div>
           </div>
     
+          {error && (
+            <div className="bg-red-50 text-red-600 border border-red-200 rounded-md px-3 py-2 text-sm">
+              {error}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
                <Card>
@@ -124,6 +158,36 @@ export default function Trazabilidad({pedido, incidencias}: Props) {
                    <li className="flex justify-between"><span className="text-slate-400">Conductor:</span> <span className="font-medium text-black">{pedido.unidad?.conductorActual}</span></li>
                  </ul>
                </Card>
+
+               {viaje && (
+                 <Card>
+                   <h3 className="text-lg font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-3">Viaje</h3>
+                   <ul className="space-y-3 text-sm">
+                     <li className="flex justify-between"><span className="text-slate-500">Viaje:</span> <span className="font-medium text-slate-800">{viaje.codigo}</span></li>
+                     <li className="flex justify-between"><span className="text-slate-500">Estado del viaje:</span> <span className="font-medium text-slate-800">{viaje.estado}</span></li>
+                     <li className="flex justify-between"><span className="text-slate-500">Unidad:</span> <span className="font-medium text-slate-800">{viaje.unidad?.codigoInterno ?? `TRK-${viaje.unidadId}`}{viaje.unidad?.placa ? ` · ${viaje.unidad.placa}` : ''}</span></li>
+                     <li className="flex justify-between"><span className="text-slate-500">Conductor:</span> <span className="font-medium text-slate-800">{viaje.conductor ?? '—'}</span></li>
+                     <li className="flex justify-between"><span className="text-slate-500">Distancia total:</span> <span className="font-medium text-slate-800">{viaje.distanciaTotal !== null ? `${viaje.distanciaTotal.toLocaleString('es-PE')} km` : '—'}</span></li>
+                     <li className="flex justify-between"><span className="text-slate-500">CO2 del viaje:</span> <span className="font-medium text-slate-800">{viaje.co2Total !== null ? `${viaje.co2Total.toLocaleString('es-PE')} kg CO2` : '—'}</span></li>
+                   </ul>
+
+                   <div className="mt-4 border-t border-slate-100 pt-3 text-sm">
+                     <p className="text-slate-600">Entregas: <span className="font-medium text-slate-800">{pedidosEntregados} de {totalPedidos} completadas</span></p>
+                     {pedidosPendientes > 0 && (
+                       <p className="text-xs text-slate-500 mt-1">{pedidosPendientes} pendiente(s)</p>
+                     )}
+                   </div>
+
+                   {viaje.estado === 'CERRADO' && (
+                     <div className="mt-3 rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-700">
+                       Viaje finalizado
+                       {viaje.fechaCierre && (
+                         <span className="block text-xs text-emerald-600 mt-0.5">{formatearFecha(viaje.fechaCierre)}</span>
+                       )}
+                     </div>
+                   )}
+                 </Card>
+               )}
             </div>
           </div>
     

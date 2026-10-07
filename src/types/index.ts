@@ -3,6 +3,7 @@ export type Rol = 'ADMIN' | 'OPERACIONES' | 'GERENCIA';
 export type TipoCatalogo = 'DESTINO' | 'FACTOR_OPERATIVO' | 'TIPO_EVENTO';
 export type EstadoUnidad = 'DISPONIBLE' | 'EN_RUTA' | 'MANTENIMIENTO';
 export type EstadoPedido = 'PENDIENTE' | 'EN_TRANSITO' | 'ENTREGADO' | 'OBSERVADO';
+export type EstadoViaje = 'PLANIFICADO' | 'EN_RUTA' | 'CERRADO';
 
 export interface Usuario {
   id: string;
@@ -20,6 +21,16 @@ export interface Parametro {
   activo: boolean;
   pedidosOrigen?: Pedido[];
   pedidosDestino?: Pedido[];
+  rutasOrigen?: Ruta[];
+  rutasDestino?: Ruta[];
+  tramosOrigen?: ViajeTramo[];
+  tramosDestino?: ViajeTramo[];
+}
+
+export interface ViajeActivoResumen {
+  id: number;
+  codigo: string;
+  estado: EstadoViaje;
 }
 
 export interface Unidad {
@@ -32,7 +43,9 @@ export interface Unidad {
   factorEmision: number;
   conductorActual: string | null;
   estado: EstadoUnidad;
+  viajeActivo?: ViajeActivoResumen | null;
   pedidos?: Pedido[];
+  viajes?: Viaje[];
 }
 
 export interface Cliente {
@@ -51,11 +64,18 @@ export interface Pedido {
   origen?: Parametro;
   destinoId: number;
   destino?: Parametro;
+  destinatarioNombre: string | null;
+  destinatarioDireccion: string | null;
+  destinatarioTelefono: string | null;
+  pesoKg: number | null;
+  cantidadUnidades: number | null;
   factorPesoVol: string | null;
   observaciones: string | null;
   estado: EstadoPedido;
   unidadId: number | null;
   unidad?: Unidad | null;
+  viajeId: number | null;
+  viaje?: Viaje | null;
   distanciaKm: number | null;
   ingresoFlete: number | null;
   costoCombustible: number | null;
@@ -77,4 +97,47 @@ export interface Incidencia {
   ubicacion: string | null;
   detalle: string;
   fechaHora: Date;
+}
+
+export interface Ruta {
+  id: number;
+  origenId: number;
+  origen?: Parametro;
+  destinoId: number;
+  destino?: Parametro;
+  distanciaKm: number;
+  activo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Viaje {
+  id: number;
+  codigo: string;
+  unidadId: number;
+  unidad?: Unidad;
+  conductor: string | null;
+  estado: EstadoViaje;
+  fechaInicio: Date | null;
+  fechaCierre: Date | null;
+  distanciaTotal: number | null;
+  factorEmisionAplicado: number | null;
+  co2Total: number | null;
+  tramos?: ViajeTramo[];
+  pedidos?: Pedido[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ViajeTramo {
+  id: number;
+  viajeId: number;
+  viaje?: Viaje;
+  orden: number;
+  origenId: number;
+  origen?: Parametro;
+  destinoId: number;
+  destino?: Parametro;
+  distanciaKm: number;
+  createdAt: Date;
 }

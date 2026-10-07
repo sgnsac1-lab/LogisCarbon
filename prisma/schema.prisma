@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -24,12 +23,16 @@ enum Rol {
 }
 
 model Parametro {
-  id          Int      @id @default(autoincrement())
-  tipo        TipoCatalogo
-  nombre      String   // Ej: "Planta Centro", "Cedis Norte"
-  activo      Boolean  @default(true)
-  pedidosOrigen   Pedido[] @relation("OrigenRel")
-  pedidosDestino  Pedido[] @relation("DestinoRel")
+  id             Int          @id @default(autoincrement())
+  tipo           TipoCatalogo
+  nombre         String // Ej: "Planta Centro", "Cedis Norte"
+  activo         Boolean      @default(true)
+  pedidosOrigen  Pedido[]     @relation("OrigenRel")
+  pedidosDestino Pedido[]     @relation("DestinoRel")
+  rutasOrigen    Ruta[]       @relation("RutaOrigenRel")
+  rutasDestino   Ruta[]       @relation("RutaDestinoRel")
+  tramosOrigen   ViajeTramo[] @relation("TramoOrigenRel")
+  tramosDestino  ViajeTramo[] @relation("TramoDestinoRel")
 }
 
 enum TipoCatalogo {
@@ -39,17 +42,18 @@ enum TipoCatalogo {
 }
 
 model Unidad {
-  id              Int      @id @default(autoincrement())
-  placa           String   @unique
-  codigoInterno   String   @unique 
+  id              Int          @id @default(autoincrement())
+  placa           String       @unique
+  codigoInterno   String       @unique
   marca           String
   anio            Int
-  capacidadTon    Float    
-  factorEmision   Float    
+  capacidadTon    Float
+  factorEmision   Float
   conductorActual String?
   estado          EstadoUnidad @default(DISPONIBLE)
-  
-  pedidos         Pedido[] // Historial de viajes asignados
+
+  pedidos Pedido[] // Historial de viajes asignados
+  viajes  Viaje[] // Viajes de la unidad (agrupación multipedido)
 }
 
 enum EstadoUnidad {
@@ -66,35 +70,48 @@ model Cliente {
 }
 
 model Pedido {
-  id               Int      @id @default(autoincrement())
-  codigo           String   @unique // Ej: PED-001
-  clienteId        Int
-  cliente          Cliente  @relation(fields: [clienteId], references: [id])
-  origenId         Int
-  origen           Parametro @relation("OrigenRel", fields: [origenId], references: [id])
-  destinoId        Int
-  destino          Parametro @relation("DestinoRel", fields: [destinoId], references: [id])
-  factorPesoVol    String?   // Ej: "12 Toneladas"
-  observaciones    String?
-  estado           EstadoPedido @default(PENDIENTE)
-  
+  id            Int          @id @default(autoincrement())
+  codigo        String       @unique // Ej: PED-001
+  clienteId     Int
+  cliente       Cliente      @relation(fields: [clienteId], references: [id])
+  origenId      Int
+  origen        Parametro    @relation("OrigenRel", fields: [origenId], references: [id])
+  destinoId     Int
+  destino       Parametro    @relation("DestinoRel", fields: [destinoId], references: [id])
+  factorPesoVol String? // Ej: "12 Toneladas"
+  observaciones String?
+  estado        EstadoPedido @default(PENDIENTE)
+
+  // Datos de entrega (Observación 1) - opcionales durante la transición
+  destinatarioNombre    String?
+  destinatarioDireccion String?
+  destinatarioTelefono  String?
+  pesoKg                Float?
+  cantidadUnidades      Int?
+
   // Asignación de Unidad (Módulo 3)
-  unidadId         Int?
-  unidad           Unidad?  @relation(fields: [unidadId], references: [id])
-  
+  unidadId Int?
+  unidad   Unidad? @relation(fields: [unidadId], references: [id])
+
+  // Agrupación en Viaje (Observación 2) - nullable permanente
+  viajeId Int?
+  viaje   Viaje? @relation(fields: [viajeId], references: [id])
+
   // Datos para Módulo 5 (Costos y Rentabilidad)
   distanciaKm      Float?
-  ingresoFlete     Float?   // $850.00 de la captura
-  costoCombustible Float?   // $150.00
-  costoPeaje       Float?   // $45.50
-  costoCarga       Float?   // $30.00
+  ingresoFlete     Float? // $850.00 de la captura
+  costoCombustible Float? // $150.00
+  costoPeaje       Float? // $45.50
+  costoCarga       Float? // $30.00
   impactoCo2       Float?
   margenNeto       Float?
   rentabilidad     Float?
-  
-  incidencias      Incidencia[]
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  incidencias Incidencia[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([viajeId])
 }
 
 enum EstadoPedido {
@@ -105,12 +122,78 @@ enum EstadoPedido {
 }
 
 model Incidencia {
-  id          Int      @id @default(autoincrement())
-  pedidoId    Int
-  pedido      Pedido   @relation(fields: [pedidoId], references: [id])
-  
-  tipoEvento  String   // Ej: "Incidencia Operativa (Tráfico)"
-  ubicacion   String?   // Ej: "Ruta 66, KM 120"
-  detalle     String
-  fechaHora   DateTime @default(now())
+  id       Int    @id @default(autoincrement())
+  pedidoId Int
+  pedido   Pedido @relation(fields: [pedidoId], references: [id])
+
+  tipoEvento String // Ej: "Incidencia Operativa (Tráfico)"
+  ubicacion  String? // Ej: "Ruta 66, KM 120"
+  detalle    String
+  fechaHora  DateTime @default(now())
+}
+
+model Ruta {
+  id          Int       @id @default(autoincrement())
+  origenId    Int
+  origen      Parametro @relation("RutaOrigenRel", fields: [origenId], references: [id])
+  destinoId   Int
+  destino     Parametro @relation("RutaDestinoRel", fields: [destinoId], references: [id])
+  distanciaKm Float
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([origenId, destinoId])
+}
+
+model Viaje {
+  id       Int    @id @default(autoincrement())
+  codigo   String @unique
+  unidadId Int
+  unidad   Unidad @relation(fields: [unidadId], references: [id])
+
+  conductor String?
+  estado    EstadoViaje @default(PLANIFICADO)
+
+  fechaInicio DateTime?
+  fechaCierre DateTime?
+
+  distanciaTotal        Float?
+  factorEmisionAplicado Float?
+  co2Total              Float?
+
+  tramos  ViajeTramo[]
+  pedidos Pedido[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([unidadId])
+}
+
+model ViajeTramo {
+  id Int @id @default(autoincrement())
+
+  viajeId Int
+  viaje   Viaje @relation(fields: [viajeId], references: [id], onDelete: Cascade)
+
+  orden Int
+
+  origenId Int
+  origen   Parametro @relation("TramoOrigenRel", fields: [origenId], references: [id])
+
+  destinoId Int
+  destino   Parametro @relation("TramoDestinoRel", fields: [destinoId], references: [id])
+
+  distanciaKm Float
+  createdAt   DateTime @default(now())
+
+  @@unique([viajeId, orden])
+  @@index([viajeId])
+}
+
+enum EstadoViaje {
+  PLANIFICADO
+  EN_RUTA
+  CERRADO
 }

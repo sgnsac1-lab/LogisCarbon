@@ -2,6 +2,7 @@
 
 import { prisma } from '../lib/prisma/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireRole } from '@/lib/auth'
 
 export async function ObtenerIncidencias(id:number){
     try {
@@ -16,6 +17,11 @@ export async function ObtenerIncidencias(id:number){
 }
 
 export async function CrearIncidencias(formData: FormData) {
+    const autorizacion = await requireRole('ADMIN', 'OPERACIONES')
+    if (!autorizacion.ok) {
+        return { error: autorizacion.error }
+    }
+
     const pedido_idRAW = formData.get('pedido_id') as string
     const tipo_evento = formData.get('tipo_evento') as string
     const ubicacion = formData.get('ubicacion') as string

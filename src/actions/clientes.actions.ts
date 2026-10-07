@@ -2,8 +2,14 @@
 
 import { prisma } from '../lib/prisma/prisma'
 import { revalidatePath } from 'next/cache'
+import { requireActiveUser, requireRole } from '@/lib/auth'
 
 export async function ObtenerClientes() {
+    const autorizacion = await requireActiveUser()
+    if (!autorizacion.ok) {
+        return { success: false, error: autorizacion.error }
+    }
+
     try {
         const clientes = await prisma.cliente.findMany({
             orderBy: {id: 'desc'}
@@ -15,6 +21,11 @@ export async function ObtenerClientes() {
 }
 
 export async function CrearClientes(formData: FormData) {
+    const autorizacion = await requireRole('ADMIN', 'OPERACIONES')
+    if (!autorizacion.ok) {
+        return { error: autorizacion.error }
+    }
+
     const razon_social = formData.get('razon_social') as string
     const documento = formData.get('documento') as string
 

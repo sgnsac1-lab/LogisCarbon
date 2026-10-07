@@ -12,6 +12,7 @@ import {
   IdCard
 } from "lucide-react"
 import { usePathname } from "next/navigation"
+import type { Rol } from "@/types"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -19,12 +20,17 @@ const navigation = [
   { name: "Pedidos", href: "/pedidos", icon: Package },
   { name: "Asignación Flota", href: "/flota", icon: Truck },
   { name: "Rentabilidad & CO2", href: "/rentabilidad", icon: CircleDollarSign },
-  { name: "Parámetros", href: "/admin", icon: Settings },
-  { name: "Usuarios", href: "/usuarios", icon: Users },
+  { name: "Parámetros", href: "/admin", icon: Settings, adminOnly: true },
+  { name: "Usuarios", href: "/usuarios", icon: Users, adminOnly: true },
 ]
 
-export default function Sidebar() {
+interface Props {
+  rol: Rol
+}
+
+export default function Sidebar({ rol }: Props) {
   const pathname = usePathname()
+  const visibleNavigation = rol === 'ADMIN' ? navigation : navigation.filter((item) => !item.adminOnly)
 
   return (
      <div className="flex flex-col w-64 bg-slate-900 border-r border-slate-800">
@@ -32,7 +38,7 @@ export default function Sidebar() {
         <span className="text-lg font-bold text-emerald-400 tracking-tight">Logis<span className="text-white">Carbon</span></span>
       </div>
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-        {navigation.map((item) => {
+        {visibleNavigation.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon;
           return (

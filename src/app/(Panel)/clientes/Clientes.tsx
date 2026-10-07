@@ -7,14 +7,16 @@ import { Button } from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Badge from "@/components/ui/Badge";
 import { Plus, Users } from "lucide-react";
-import { Cliente } from "@/types"
+import { Cliente, Rol } from "@/types"
 import { CrearClientes } from "@/actions/clientes.actions";
 
 interface Props {
   clientes: Cliente[]
+  rol: Rol
 }
 
-export default function Clientes({clientes}: Props) {
+export default function Clientes({clientes, rol}: Props) {
+    const esSoloLectura = rol === 'GERENCIA'
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newCliente, setNewCliente] = useState({ razonSocial: "", documento: "" });
     const [loading, setLoading] = useState(false)
@@ -44,9 +46,11 @@ export default function Clientes({clientes}: Props) {
           <h2 className="text-2xl font-bold text-slate-800">Directorio de Clientes</h2>
           <p className="text-slate-500 text-sm mt-1">Gestión de cuentas y empresas cliente</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Nuevo Cliente
-        </Button>
+        {!esSoloLectura && (
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Nuevo Cliente
+          </Button>
+        )}
       </div>
 
       <Card className="p-0 overflow-hidden">

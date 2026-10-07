@@ -1,14 +1,17 @@
 import Flota from "./Flota"
-import { ObtenerFlotilla } from "@/actions/flota.actions"
-import { obtenerPedidosParaAsignar } from "@/actions/pedidos.actions"
+import { ObtenerFlotilla, ObtenerPedidosDisponiblesParaCarga } from "@/actions/flota.actions"
+import { ObtenerParametros } from "@/actions/parametros.actions"
+import { getSessionUser } from "@/actions/session.actions"
 
 export default async function page() {
 
-  const [dataFlotilla, dataPedidos] = await Promise.all([
+  const [dataFlotilla, dataPedidos, dataParametros, session] = await Promise.all([
     ObtenerFlotilla(),
-    obtenerPedidosParaAsignar()
+    ObtenerPedidosDisponiblesParaCarga(),
+    ObtenerParametros(),
+    getSessionUser()
   ])
-  if(!dataFlotilla.success || !dataPedidos.success){
+  if(!dataFlotilla.success || !dataPedidos.success || !dataParametros.success){
     return(
       <div className="p-8 max-w-7xl mx-auto">
         <div className="bg-red-50 text-red-600 p-4 rounded-md border border-red-200">
@@ -19,6 +22,9 @@ export default async function page() {
   }
   const listaFlotilla = dataFlotilla.data || []
   const listaPedidos = dataPedidos.data || []
+  const listaParadas = (dataParametros.data || []).filter(
+    (parametro) => parametro.tipo === 'DESTINO' && parametro.activo === true
+  )
 
-  return <Flota flotilla={listaFlotilla} pedidos={listaPedidos} />
+  return <Flota flotilla={listaFlotilla} pedidos={listaPedidos} parametros={listaParadas} rol={session?.rol ?? 'OPERACIONES'} />
 }

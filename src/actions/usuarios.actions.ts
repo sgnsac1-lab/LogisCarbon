@@ -4,6 +4,7 @@ import { prisma } from '../lib/prisma/prisma'
 import { revalidatePath } from "next/cache"
 import { createClient } from '@supabase/supabase-js'
 import { Rol } from '@/types'
+import { requireRole } from '@/lib/auth'
 
 
 // 🔑 Cliente Admin (Para crear usuarios sin botarte de tu sesión)
@@ -13,6 +14,11 @@ const supabaseAdmin = createClient(
 )
 
 export async function registrarUsuarioAdmin(formData: FormData) {
+  const autorizacion = await requireRole('ADMIN')
+  if (!autorizacion.ok) {
+    return { error: autorizacion.error }
+  }
+
   const nombre_completo = formData.get('nombre_completo') as string
   const email = formData.get('email') as string
   const password = formData.get('password') as string
@@ -40,7 +46,7 @@ export async function registrarUsuarioAdmin(formData: FormData) {
     })
 
     // Refrescamos la vista donde tengas la tabla de usuarios
-    revalidatePath('/users') 
+    revalidatePath('/usuarios') 
     
     return { success: true, data: nuevoUsuario }
 
@@ -51,6 +57,11 @@ export async function registrarUsuarioAdmin(formData: FormData) {
 }
 
 export async function ObtenerUsuarios() {
+  const autorizacion = await requireRole('ADMIN')
+  if (!autorizacion.ok) {
+    return { error: autorizacion.error }
+  }
+
   try {
     const usuarios = await prisma.usuario.findMany({
       orderBy: {createdAt:'desc'}
